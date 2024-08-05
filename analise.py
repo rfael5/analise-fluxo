@@ -6,24 +6,29 @@ O resultado da query traz o total de vendas de produtos para a Araújo e o total
 de devoluções que a Araújo faz. A função unirFluxoUnidades junta os resultados das
 vendas e das devoluções de cada loja
 """
-def unirFluxoUnidades(row, copia_lista):
-    resultadosJson = copia_lista.to_json(orient='records')
-    dadosDesserializados = json.loads(resultadosJson)
-    row['totalVenda'] = 0
-    row['totalCompra'] = 0
-    for unidade in dadosDesserializados:
-        print(row)
-        if int(row['ID']) == int(unidade['ID']) and row['tipoOperacao'] == 'C':
-            #unidade['totalVenda'] = row['totalOperacao']
-            row['totalVenda'] = unidade['totalOperacao']
-        elif int(row['ID']) == int(unidade['ID']) and row['tipoOperacao'] == 'F':
-            #unidade['totalCompra'] = row['totalOperacao']
-            row['totalCompra'] = unidade['totalOperacao']
-        print(row)
+def inserirTotalCompras(row, _vendas):
+    id_unidade = int(row['ID'])
+    devolucao = _vendas.loc[(id_unidade == _vendas['ID'].astype(int)) & (_vendas['tipoOperacao'] == 'F')]
+    if len(devolucao) == 0:
+        row['DEVOLUCAO'] = 0
+    else:
+        row['DEVOLUCAO'] = devolucao['totalOperacao'].values[0]
+    
+    vendidos = _vendas.loc[(id_unidade == _vendas['ID'].astype(int)) & (_vendas['tipoOperacao'] == 'C')]
+    
+    if len(vendidos) == 0:
+        row['VENDIDOS'] = 0
+    else:
+        row['VENDIDOS'] = vendidos['totalOperacao'].values[0]
+    return row
 
 total_lojas = conn.buscarTotalLojas('20240501', '20240701')
-copia_lista = total_lojas
+unidades = conn.callCadastros()
 
-total_lojas = total_lojas.apply(unirFluxoUnidades, copia_lista=copia_lista, axis=1)
+unidades = unidades.apply(inserirTotalCompras, _vendas = total_lojas, axis=1)
+unidades['TOTAL'] = unidades['VENDIDOS'] - unidades['DEVOLUCAO']
+unidades = unidades.sort_values(by=['FANTASIA'])
+
+print(unidades)
 
 #print(total_lojas)
