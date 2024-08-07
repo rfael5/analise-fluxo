@@ -1,9 +1,10 @@
 import json
 import conn
-
+import plotly.express as px
+import plotly.graph_objects as go
 """
 O resultado da query traz o total de vendas de produtos para a Araújo e o total
-de devoluções que a Araújo faz. A função unirFluxoUnidades junta os resultados das
+de devoluções que a Araújo faz. A função inserirTotalCompras junta os resultados das
 vendas e das devoluções de cada loja
 """
 def inserirTotalCompras(row, _vendas):
@@ -29,6 +30,19 @@ unidades = unidades.apply(inserirTotalCompras, _vendas = total_lojas, axis=1)
 unidades['TOTAL'] = unidades['VENDIDOS'] - unidades['DEVOLUCAO']
 unidades = unidades.sort_values(by=['FANTASIA'])
 
-print(unidades)
+dez_primeiros = unidades.sort_values(by=['TOTAL'], ascending=False)
+primeiro = dez_primeiros.iloc[0:10]
+print(dez_primeiros)
+fig = px.histogram(primeiro, x='FANTASIA', y='TOTAL')
 
-#print(total_lojas)
+# fig = go.Figure(
+#     data=[go.Bar(y=[2, 1, 3])],
+#     layout_title_text="A Figure Displayed with fig.show()"
+# )
+
+fig.write_html('tmp.html', auto_open=True)
+# fig.show()
+
+# df = px.data.tips()
+# fig = px.histogram(df, x='total_bill')
+# fig.show()
