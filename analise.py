@@ -23,24 +23,40 @@ def inserirTotalCompras(row, _vendas):
         row['VENDIDOS'] = vendidos['totalOperacao'].values[0]
     return row
 
-total_lojas = conn.buscarTotalLojas('20240501', '20240701')
-unidades = conn.callCadastros()
+vendas = conn.buscarProdutos('20230101', '20240101')
+order_valor_maior = vendas.sort_values(by=['totalPrecoEvento'], ascending=False)
+dezp_monetario = order_valor_maior.iloc[0:10]
 
-unidades = unidades.apply(inserirTotalCompras, _vendas = total_lojas, axis=1)
-unidades['TOTAL'] = unidades['VENDIDOS'] - unidades['DEVOLUCAO']
-unidades = unidades.sort_values(by=['FANTASIA'])
+order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
+dezp_qtd = order_qtd_maior.iloc[0:10]
 
-dez_primeiros = unidades.sort_values(by=['TOTAL'], ascending=False)
-primeiro = dez_primeiros.iloc[0:10]
-print(dez_primeiros)
-fig = px.histogram(primeiro, x='FANTASIA', y='TOTAL')
+order_valor_menor = vendas.sort_values(by=['totalPrecoEvento'], ascending=True)
+dezm_monetario = order_valor_menor.iloc[0:10]
+
+fig = px.histogram(dezp_monetario, x='nomeProduto', y='totalPrecoEvento')
+fig.write_html('tmp.html', auto_open=True)
+
+# fig2 = px.histogram(dezp_qtd, x='nomeProduto', y='qtdEvento')
+# fig2.write_html('tmp.html', auto_open=True)
+
+
+# unidades = conn.callCadastros()
+
+# unidades = unidades.apply(inserirTotalCompras, _vendas = total_lojas, axis=1)
+# unidades['TOTAL'] = unidades['VENDIDOS'] - unidades['DEVOLUCAO']
+# unidades = unidades.sort_values(by=['FANTASIA'])
+
+# dez_primeiros = unidades.sort_values(by=['TOTAL'], ascending=False)
+# primeiro = dez_primeiros.iloc[0:10]
+# print(dez_primeiros)
+# fig = px.histogram(primeiro, x='FANTASIA', y='TOTAL')
 
 # fig = go.Figure(
 #     data=[go.Bar(y=[2, 1, 3])],
 #     layout_title_text="A Figure Displayed with fig.show()"
 # )
 
-fig.write_html('tmp.html', auto_open=True)
+#fig.write_html('tmp.html', auto_open=True)
 # fig.show()
 
 # df = px.data.tips()
