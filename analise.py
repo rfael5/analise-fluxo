@@ -9,6 +9,8 @@ from tkinter import ttk
 from tkcalendar import DateEntry
 from tkinter import messagebox
 
+import pandas as pd
+
 """
 O resultado da query traz o total de vendas de produtos para a Araújo e o total
 de devoluções que a Araújo faz. A função inserirTotalCompras junta os resultados das
@@ -54,6 +56,13 @@ def mostrarDezMaisVendidos():
     fig.update_layout(barmode = 'relative')
     fig.write_html('tmp.html', auto_open=True)
 
+def calcularPorcentagem(row, total):
+    porcentagem = (row['totalPrecoEvento'] * 100) / total
+    # arredondamento = round(porcentagem, 2)
+    # print(arredondamento)
+    return round(porcentagem,2)
+    
+
 def calcularPareto():
     vendas = conn.buscarProdutos('20230101', '20240101')
     total_vendas = vendas['totalPrecoEvento'].sum()
@@ -62,16 +71,21 @@ def calcularPareto():
     pct_arr = round(oitenta_pct, 2)
     
     result_json = vendas.to_json(orient="records")
-    d_data = json.dumps(result_json)
+    d_data = json.loads(result_json)
     somaVendas = 0
     listaVinteVendas = []
     for produto in d_data:
-        if somaVendas <= oitenta_pct:
-            somaVendas += int(produto['totalPrecoEvento'])
+        if somaVendas < oitenta_pct:
+            somaVendas += float(produto['totalPrecoEvento'])
             listaVinteVendas.append(produto)
     print(total_arr)
     print(pct_arr)
-    print(d_data)
+    df = pd.DataFrame(listaVinteVendas)
+    total_vinte = df['totalPrecoEvento'].sum()
+    df['porcentagem'] = df.apply(calcularPorcentagem, total=total_vendas, axis=1)
+    ordenados = df.sort_values(by=['totalPrecoEvento'], ascending=False)
+    ordenados.to_excel("pareto_produtos.xlsx")
+    print(ordenados)
 
 calcularPareto()
     
