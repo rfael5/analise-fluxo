@@ -37,20 +37,27 @@ def encontrarBrigadeiro(row):
     if "Brigadeiro" in row['nomeProduto']:
         print(row)
 
+
+def mostraMaisVendidosQtd():
+    vendas = conn.buscarProdutos('20230101', '20240101')
+    order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
+    dezp_qtd = order_qtd_maior.iloc[0:10]
+    
+    fig = px.histogram(dezp_qtd, x='nomeProduto', y='totalPrecoEvento')
+    fig.update_layout(barmode = 'relative')
+    fig.write_html('tmp.html', auto_open=True)
+
+
 def mostrarDezMaisVendidos():
     vendas = conn.buscarProdutos('20230101', '20240101')
     order_valor_maior = vendas.sort_values(by=['totalPrecoEvento'], ascending=False)
     dezp_monetario = order_valor_maior.iloc[0:10]
 
-    order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
-    dezp_qtd = order_qtd_maior.iloc[0:10]
+    # order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
+    # dezp_qtd = order_qtd_maior.iloc[0:10]
 
     order_valor_menor = vendas.sort_values(by=['totalPrecoEvento'], ascending=True)
     dezm_monetario = order_valor_menor.iloc[0:10]
-    
-    print(dezp_monetario)
-    print("###############")
-    dezp_monetario.apply(encontrarBrigadeiro, axis=1)
     
     fig = px.histogram(dezp_monetario, x='nomeProduto', y='totalPrecoEvento')
     fig.update_layout(barmode = 'relative')
@@ -58,8 +65,6 @@ def mostrarDezMaisVendidos():
 
 def calcularPorcentagem(row, total):
     porcentagem = (row['totalPrecoEvento'] * 100) / total
-    # arredondamento = round(porcentagem, 2)
-    # print(arredondamento)
     return round(porcentagem,2)
     
 
@@ -78,17 +83,13 @@ def calcularPareto():
         if somaVendas < oitenta_pct:
             somaVendas += float(produto['totalPrecoEvento'])
             listaVinteVendas.append(produto)
-    print(total_arr)
-    print(pct_arr)
     df = pd.DataFrame(listaVinteVendas)
     total_vinte = df['totalPrecoEvento'].sum()
     df['porcentagem'] = df.apply(calcularPorcentagem, total=total_vendas, axis=1)
     ordenados = df.sort_values(by=['totalPrecoEvento'], ascending=False)
     ordenados.to_excel("pareto_produtos.xlsx")
-    print(ordenados)
 
 calcularPareto()
-    
 
 
 #Tkinter
@@ -127,7 +128,7 @@ calcularPareto()
 # btn_dez_mais = Button(secondFrame, text="Dez mais vendidos", bg='#C0C0C0', font=("Arial", 16), command=mostrarDezMaisVendidos)
 # btn_dez_mais.grid(row=1, column=0, padx=(80, 0), pady=10)
 
-# btn_dez_menos = Button(secondFrame, text="Dez menos vendidos", bg='#C0C0C0', font=("Arial", 16))
+# btn_dez_menos = Button(secondFrame, text="Dez menos vendidos", bg='#C0C0C0', font=("Arial", 16), command=mostraMaisVendidosQtd)
 # btn_dez_menos.grid(row=1, column=1, padx=(80, 0), pady=10)
 
 # btn_pareto = Button(secondFrame, text="Pareto mais vendidos", bg='#C0C0C0', font=("Arial", 16), command=calcularPareto)
