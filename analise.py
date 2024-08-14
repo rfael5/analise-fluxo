@@ -1,4 +1,5 @@
 import json
+from tkinter import filedialog
 import conn
 import plotly.express as px
 import plotly.graph_objects as go
@@ -42,8 +43,8 @@ def mostraMaisVendidosQtd():
     vendas = conn.buscarProdutos('20230101', '20240101')
     order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
     dezp_qtd = order_qtd_maior.iloc[0:10]
-    
-    fig = px.histogram(dezp_qtd, x='nomeProduto', y='totalPrecoEvento')
+    print(dezp_qtd)
+    fig = px.histogram(dezp_qtd, x='nomeProduto', y='qtdEvento')
     fig.update_layout(barmode = 'relative')
     fig.write_html('tmp.html', auto_open=True)
 
@@ -87,52 +88,71 @@ def calcularPareto():
     total_vinte = df['totalPrecoEvento'].sum()
     df['porcentagem'] = df.apply(calcularPorcentagem, total=total_vendas, axis=1)
     ordenados = df.sort_values(by=['totalPrecoEvento'], ascending=False)
-    ordenados.to_excel("pareto_produtos.xlsx")
+    criarPlanilhaExcel(ordenados)
 
-calcularPareto()
+def criarPlanilhaExcel(dataframe):
+    root = Tk()
+    root.withdraw()
+    file_path = filedialog.asksaveasfilename(defaultextension=".xlsx",
+                                                filetypes=[("Arquivos Excel", "*.xlsx")],
+                                                title="Salvar arquivo Excel",
+                                                initialfile=f"pareto_produtos")
+    
+    if not file_path:
+        print("Operação cancelada pelo usuário.")
+        return
+    
+    if not file_path.endswith(".xlsx"):
+        file_path += ".xlsx"
+    
+    dataframe.to_excel(file_path, index=False)
+    
+    print(f"Arquivo salvo em: {file_path}")
+
+
 
 
 #Tkinter
-# root = Tk()
-# root.title("| Gerar pedidos de suprimento |")
+root = Tk()
+root.title("| Gerar pedidos de suprimento |")
 
-# root.geometry("1150x800")
+root.geometry("1150x800")
 
-# notebook = ttk.Notebook(root)
-# notebook.pack(fill=BOTH, expand=True)
+notebook = ttk.Notebook(root)
+notebook.pack(fill=BOTH, expand=True)
 
-# page1 = Frame(notebook)
-# notebook.add(page1, text='| Relatório pedidos de suprimento |')
+page1 = Frame(notebook)
+notebook.add(page1, text='| Relatório pedidos de suprimento |')
 
-# mainFrame = Frame(page1)
-# mainFrame.pack(fill=BOTH, expand=1)
+mainFrame = Frame(page1)
+mainFrame.pack(fill=BOTH, expand=1)
 
-# canvas = Canvas(mainFrame)
-# canvas.pack(side=LEFT, fill=BOTH, expand=1)
-# #canvas.grid(row=0, column=0, sticky=EW)
+canvas = Canvas(mainFrame)
+canvas.pack(side=LEFT, fill=BOTH, expand=1)
+#canvas.grid(row=0, column=0, sticky=EW)
 
-# scrollbar = ttk.Scrollbar(mainFrame, orient=VERTICAL, command=canvas.yview)
-# scrollbar.pack(side=RIGHT, fill=Y)
-# #scrollbar.grid(row=0, rowspan=10, column=1, sticky="ns")
+scrollbar = ttk.Scrollbar(mainFrame, orient=VERTICAL, command=canvas.yview)
+scrollbar.pack(side=RIGHT, fill=Y)
+#scrollbar.grid(row=0, rowspan=10, column=1, sticky="ns")
 
-# canvas.configure(yscrollcommand=scrollbar.set)
-# canvas.bind('<Configure>', lambda e:canvas.configure(scrollregion=canvas.bbox("all")))
+canvas.configure(yscrollcommand=scrollbar.set)
+canvas.bind('<Configure>', lambda e:canvas.configure(scrollregion=canvas.bbox("all")))
 
-# secondFrame = Frame(canvas)
-# canvas.create_window((0, 0), window=secondFrame, anchor="nw")
+secondFrame = Frame(canvas)
+canvas.create_window((0, 0), window=secondFrame, anchor="nw")
 
 
-# explicacao = Label(secondFrame, text="Qual gráfico você quer gerar?", font=("Arial", 14))
-# explicacao.grid(row=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
+explicacao = Label(secondFrame, text="Qual gráfico você quer gerar?", font=("Arial", 14))
+explicacao.grid(row=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
 
-# btn_dez_mais = Button(secondFrame, text="Dez mais vendidos", bg='#C0C0C0', font=("Arial", 16), command=mostrarDezMaisVendidos)
-# btn_dez_mais.grid(row=1, column=0, padx=(80, 0), pady=10)
+btn_dez_mais = Button(secondFrame, text="Dez mais vendidos", bg='#C0C0C0', font=("Arial", 16), command=mostrarDezMaisVendidos)
+btn_dez_mais.grid(row=1, column=0, padx=(80, 0), pady=10)
 
-# btn_dez_menos = Button(secondFrame, text="Dez menos vendidos", bg='#C0C0C0', font=("Arial", 16), command=mostraMaisVendidosQtd)
-# btn_dez_menos.grid(row=1, column=1, padx=(80, 0), pady=10)
+btn_dez_menos = Button(secondFrame, text="Dez menos vendidos", bg='#C0C0C0', font=("Arial", 16), command=mostraMaisVendidosQtd)
+btn_dez_menos.grid(row=1, column=1, padx=(80, 0), pady=10)
 
-# btn_pareto = Button(secondFrame, text="Pareto mais vendidos", bg='#C0C0C0', font=("Arial", 16), command=calcularPareto)
-# btn_pareto.grid(row=1, column=2, padx=(80, 0), pady=10)
+btn_pareto = Button(secondFrame, text="Pareto mais vendidos", bg='#C0C0C0', font=("Arial", 16), command=calcularPareto)
+btn_pareto.grid(row=1, column=2, padx=(80, 0), pady=10)
 
-# root.mainloop()  
+root.mainloop()  
 
