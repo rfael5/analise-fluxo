@@ -17,28 +17,8 @@ O resultado da query traz o total de vendas de produtos para a Araújo e o total
 de devoluções que a Araújo faz. A função inserirTotalCompras junta os resultados das
 vendas e das devoluções de cada loja
 """
-def inserirTotalCompras(row, _vendas):
-    id_unidade = int(row['ID'])
-    devolucao = _vendas.loc[(id_unidade == _vendas['ID'].astype(int)) & (_vendas['tipoOperacao'] == 'F')]
-    if len(devolucao) == 0:
-        row['DEVOLUCAO'] = 0
-    else:
-        row['DEVOLUCAO'] = devolucao['totalOperacao'].values[0]
-    
-    vendidos = _vendas.loc[(id_unidade == _vendas['ID'].astype(int)) & (_vendas['tipoOperacao'] == 'C')]
-    
-    if len(vendidos) == 0:
-        row['VENDIDOS'] = 0
-    else:
-        row['VENDIDOS'] = vendidos['totalOperacao'].values[0]
-    return row
 
-
-def encontrarBrigadeiro(row):
-    if "Brigadeiro" in row['nomeProduto']:
-        print(row)
-
-
+#Mostra os 10 produtos mais vendidos por quantidade.
 def mostraMaisVendidosQtd():
     vendas = conn.buscarProdutos('20230101', '20240101')
     order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
@@ -49,13 +29,11 @@ def mostraMaisVendidosQtd():
     fig.write_html('tmp.html', auto_open=True)
 
 
+#Mostra os 10 produtos mais vendidos de acordo com o valor das vendas
 def mostrarDezMaisVendidos():
     vendas = conn.buscarProdutos('20230101', '20240101')
     order_valor_maior = vendas.sort_values(by=['totalPrecoEvento'], ascending=False)
     dezp_monetario = order_valor_maior.iloc[0:10]
-
-    # order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
-    # dezp_qtd = order_qtd_maior.iloc[0:10]
 
     order_valor_menor = vendas.sort_values(by=['totalPrecoEvento'], ascending=True)
     dezm_monetario = order_valor_menor.iloc[0:10]
@@ -64,11 +42,17 @@ def mostrarDezMaisVendidos():
     fig.update_layout(barmode = 'relative')
     fig.write_html('tmp.html', auto_open=True)
 
+
+#Calcula a porcentagem de cada produto dentro do total de vendas e insere em uma coluna
+#no dataframe.
 def calcularPorcentagem(row, total):
     porcentagem = (row['totalPrecoEvento'] * 100) / total
     return round(porcentagem,2)
     
-
+#Identifica os produtos que são responsáveis por 80% da arrecadação do buffet,
+#baseando-se no princípio de pareto, que diz que 80% dos resultados vem de 20%
+#das ações. No caso deste projeto, mais ou menos 20% dos produtos seriam responsáveis
+#por 80% dos lucros.
 def calcularPareto():
     vendas = conn.buscarProdutos('20230101', '20240101')
     total_vendas = vendas['totalPrecoEvento'].sum()
@@ -88,9 +72,19 @@ def calcularPareto():
     total_vinte = df['totalPrecoEvento'].sum()
     df['porcentagem'] = df.apply(calcularPorcentagem, total=total_vendas, axis=1)
     ordenados = df.sort_values(by=['totalPrecoEvento'], ascending=False)
+    print(total_vendas)
     criarPlanilhaExcel(ordenados)
 
+#Função para criar uma planilha Excel com os produtos que estão nos 20% mais vendidos, 
+#ordenando do maior valor ao menor. As colunas incluem o nome do produto, as unidades
+#vendidas, o valor total, e a porcentagem correspondente de cada produto.
 def criarPlanilhaExcel(dataframe):
+    """
+    Abre uma janela para o usuário salvar um arquivo Excel com os produtos
+    ordenados do mais vendido ao menos vendido.
+    
+    """
+    # Abrir uma janela para o usuário salvar o arquivo
     root = Tk()
     root.withdraw()
     file_path = filedialog.asksaveasfilename(defaultextension=".xlsx",
@@ -111,7 +105,6 @@ def criarPlanilhaExcel(dataframe):
 
 
 
-
 #Tkinter
 root = Tk()
 root.title("| Gerar pedidos de suprimento |")
@@ -129,11 +122,9 @@ mainFrame.pack(fill=BOTH, expand=1)
 
 canvas = Canvas(mainFrame)
 canvas.pack(side=LEFT, fill=BOTH, expand=1)
-#canvas.grid(row=0, column=0, sticky=EW)
 
 scrollbar = ttk.Scrollbar(mainFrame, orient=VERTICAL, command=canvas.yview)
 scrollbar.pack(side=RIGHT, fill=Y)
-#scrollbar.grid(row=0, rowspan=10, column=1, sticky="ns")
 
 canvas.configure(yscrollcommand=scrollbar.set)
 canvas.bind('<Configure>', lambda e:canvas.configure(scrollregion=canvas.bbox("all")))
@@ -145,10 +136,10 @@ canvas.create_window((0, 0), window=secondFrame, anchor="nw")
 explicacao = Label(secondFrame, text="Qual gráfico você quer gerar?", font=("Arial", 14))
 explicacao.grid(row=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
 
-btn_dez_mais = Button(secondFrame, text="Dez mais vendidos", bg='#C0C0C0', font=("Arial", 16), command=mostrarDezMaisVendidos)
+btn_dez_mais = Button(secondFrame, text="Dez mais vendidos por valor", bg='#C0C0C0', font=("Arial", 16), command=mostrarDezMaisVendidos)
 btn_dez_mais.grid(row=1, column=0, padx=(80, 0), pady=10)
 
-btn_dez_menos = Button(secondFrame, text="Dez menos vendidos", bg='#C0C0C0', font=("Arial", 16), command=mostraMaisVendidosQtd)
+btn_dez_menos = Button(secondFrame, text="Dez menos vendidos por unidade", bg='#C0C0C0', font=("Arial", 16), command=mostraMaisVendidosQtd)
 btn_dez_menos.grid(row=1, column=1, padx=(80, 0), pady=10)
 
 btn_pareto = Button(secondFrame, text="Pareto mais vendidos", bg='#C0C0C0', font=("Arial", 16), command=calcularPareto)
