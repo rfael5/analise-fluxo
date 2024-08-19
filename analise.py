@@ -18,26 +18,44 @@ de devoluções que a Araújo faz. A função inserirTotalCompras junta os resul
 vendas e das devoluções de cada loja
 """
 
+
 #Mostra os 10 produtos mais vendidos por quantidade.
 def mostraMaisVendidosQtd():
-    vendas = conn.buscarProdutos('20230101', '20240101')
-    order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
-    dezp_qtd = order_qtd_maior.iloc[0:10]
-    print(dezp_qtd)
+    dataInicio = dtInicio.get()
+    dtInicioFormatada = formatarData(dataInicio)
+    dataFim = dtFim.get()
+    dtFimFormatada = formatarData(dataFim)
+    
+    vendas = conn.buscarProdutos(dtInicioFormatada, dtFimFormatada)
+    if len(vendas) == 0:
+        messagebox.showinfo("", "Sem encomendas registradas nesse período")
+    else:
+        order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
+        dezp_qtd = order_qtd_maior.iloc[0:10]
+        print(dezp_qtd)
     fig = px.histogram(dezp_qtd, x='nomeProduto', y='qtdEvento')
     fig.update_layout(barmode = 'relative')
     fig.write_html('tmp.html', auto_open=True)
 
+def formatarData(data):
+    data_objeto = datetime.strptime(data, '%d/%m/%Y')
+    data_formatada = data_objeto.strftime('%Y%m%d')
+    return data_formatada
 
 #Mostra os 10 produtos mais vendidos de acordo com o valor das vendas
 def mostrarDezMaisVendidos():
-    vendas = conn.buscarProdutos('20230101', '20240101')
-    order_valor_maior = vendas.sort_values(by=['totalPrecoEvento'], ascending=False)
-    dezp_monetario = order_valor_maior.iloc[0:10]
+    dataInicio = dtInicio.get()
+    dtInicioFormatada = formatarData(dataInicio)
+    dataFim = dtFim.get()
+    dtFimFormatada = formatarData(dataFim)
 
-    order_valor_menor = vendas.sort_values(by=['totalPrecoEvento'], ascending=True)
-    dezm_monetario = order_valor_menor.iloc[0:10]
-    
+    vendas = conn.buscarProdutos(dtInicioFormatada, dtFimFormatada)
+    if len(vendas) == 0:
+        messagebox.showinfo("", "Sem encomendas registradas nesse período.")
+    else:
+        order_valor_maior = vendas.sort_values(by=['totalPrecoEvento'], ascending=False)
+        dezp_monetario = order_valor_maior.iloc[0:10]
+        print(dezp_monetario)
     fig = px.histogram(dezp_monetario, x='nomeProduto', y='totalPrecoEvento')
     fig.update_layout(barmode = 'relative')
     fig.write_html('tmp.html', auto_open=True)
@@ -53,25 +71,12 @@ def calcularPorcentagem(row, total):
 #baseando-se no princípio de pareto, que diz que 80% dos resultados vem de 20%
 #das ações. No caso deste projeto, mais ou menos 20% dos produtos seriam responsáveis
 #por 80% dos lucros.
-def calcularPareto():
+def calcularPorcentagem():
     vendas = conn.buscarProdutos('20230101', '20240101')
     total_vendas = vendas['totalPrecoEvento'].sum()
-    oitenta_pct = total_vendas * 0.8
-    total_arr = round(total_vendas, 2)
-    pct_arr = round(oitenta_pct, 2)
-    
-    result_json = vendas.to_json(orient="records")
-    d_data = json.loads(result_json)
-    somaVendas = 0
-    listaVinteVendas = []
-    for produto in d_data:
-        if somaVendas < oitenta_pct:
-            somaVendas += float(produto['totalPrecoEvento'])
-            listaVinteVendas.append(produto)
-    df = pd.DataFrame(listaVinteVendas)
-    total_vinte = df['totalPrecoEvento'].sum()
-    df['porcentagem'] = df.apply(calcularPorcentagem, total=total_vendas, axis=1)
-    ordenados = df.sort_values(by=['totalPrecoEvento'], ascending=False)
+ 
+    vendas['porcentagem'] = vendas.apply(calcularPorcentagem, total=total_vendas, axis=1)
+    ordenados = vendas.sort_values(by=['totalPrecoEvento'], ascending=False)
     print(total_vendas)
     criarPlanilhaExcel(ordenados)
 
@@ -104,7 +109,6 @@ def criarPlanilhaExcel(dataframe):
     print(f"Arquivo salvo em: {file_path}")
 
 
-
 #Tkinter
 root = Tk()
 root.title("| Gerar pedidos de suprimento |")
@@ -132,18 +136,29 @@ canvas.bind('<Configure>', lambda e:canvas.configure(scrollregion=canvas.bbox("a
 secondFrame = Frame(canvas)
 canvas.create_window((0, 0), window=secondFrame, anchor="nw")
 
+lbl_dtInicio = Label(secondFrame, text="De:", font=("Arial", 14))
+lbl_dtInicio.grid(row=1, padx=(0, 190), column=0, sticky="e")
+
+dtInicio = DateEntry(secondFrame, font=('Arial', 12), width=22, height=20, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
+dtInicio.grid(row=2, column=0, padx=(150, 0), pady=5, sticky="e")
+
+lbl_dtFim = Label(secondFrame, text="Até:", font=("Arial", 14))
+lbl_dtFim.grid(row=1, column=1, padx=(50, 0), pady=5, sticky="w")
+
+dtFim = DateEntry(secondFrame, font=('Arial', 12), width=22, height=20, background='darkblue', foreground='white', borderwidth=2, date_pattern='dd/mm/yyyy')
+dtFim.grid(row=2, column=1, padx=(50, 0), pady=5, sticky="w")
 
 explicacao = Label(secondFrame, text="Qual gráfico você quer gerar?", font=("Arial", 14))
-explicacao.grid(row=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
+explicacao.grid(row=3, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
 
 btn_dez_mais = Button(secondFrame, text="Dez mais vendidos por valor", bg='#C0C0C0', font=("Arial", 16), command=mostrarDezMaisVendidos)
-btn_dez_mais.grid(row=1, column=0, padx=(80, 0), pady=10)
+btn_dez_mais.grid(row=4, column=0, padx=(80, 0), pady=10)
 
-btn_dez_menos = Button(secondFrame, text="Dez menos vendidos por unidade", bg='#C0C0C0', font=("Arial", 16), command=mostraMaisVendidosQtd)
-btn_dez_menos.grid(row=1, column=1, padx=(80, 0), pady=10)
+btn_dez_menos = Button(secondFrame, text="Dez mais vendidos por unidade", bg='#C0C0C0', font=("Arial", 16), command=mostraMaisVendidosQtd)
+btn_dez_menos.grid(row=4, column=1, padx=(80, 0), pady=10)
 
-btn_pareto = Button(secondFrame, text="Pareto mais vendidos", bg='#C0C0C0', font=("Arial", 16), command=calcularPareto)
-btn_pareto.grid(row=1, column=2, padx=(80, 0), pady=10)
+btn_pareto = Button(secondFrame, text="Porcentagem de encomendas por ano", bg='#C0C0C0', font=("Arial", 16), command=calcularPorcentagem)
+btn_pareto.grid(row=4, column=2, padx=(80, 0), pady=10)
 
 root.mainloop()  
 
