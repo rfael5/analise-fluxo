@@ -53,10 +53,10 @@ def mostrarDezMaisVendidos():
     if len(vendas) == 0:
         messagebox.showinfo("", "Sem encomendas registradas nesse período.")
     else:
-        order_valor_maior = vendas.sort_values(by=['totalPrecoEvento'], ascending=False)
+        order_valor_maior = vendas.sort_values(by=['totalValorVendas'], ascending=False)
         dezp_monetario = order_valor_maior.iloc[0:10]
         print(dezp_monetario)
-    fig = px.histogram(dezp_monetario, x='nomeProduto', y='totalPrecoEvento')
+    fig = px.histogram(dezp_monetario, x='nomeProduto', y='totalValorVendas')
     fig.update_layout(barmode = 'relative')
     fig.write_html('tmp.html', auto_open=True)
 
@@ -64,19 +64,24 @@ def mostrarDezMaisVendidos():
 #Calcula a porcentagem de cada produto dentro do total de vendas e insere em uma coluna
 #no dataframe.
 def calcularPorcentagem(row, total):
-    porcentagem = (row['totalPrecoEvento'] * 100) / total
+    porcentagem = (row['totalValorVendas'] * 100) / total
     return round(porcentagem,2)
     
 #Identifica os produtos que são responsáveis por 80% da arrecadação do buffet,
 #baseando-se no princípio de pareto, que diz que 80% dos resultados vem de 20%
 #das ações. No caso deste projeto, mais ou menos 20% dos produtos seriam responsáveis
 #por 80% dos lucros.
-def calcularPorcentagem():
-    vendas = conn.buscarProdutos('20230101', '20240101')
-    total_vendas = vendas['totalPrecoEvento'].sum()
+def gerarListaCompleta():
+    dataInicio = dtInicio.get()
+    dtInicioFormatada = formatarData(dataInicio)
+    dataFim = dtFim.get()
+    dtFimFormatada = formatarData(dataFim)
+    
+    vendas = conn.buscarProdutos(dtInicioFormatada, dtFimFormatada)
+    total_vendas = vendas['totalValorVendas'].sum()
  
     vendas['porcentagem'] = vendas.apply(calcularPorcentagem, total=total_vendas, axis=1)
-    ordenados = vendas.sort_values(by=['totalPrecoEvento'], ascending=False)
+    ordenados = vendas.sort_values(by=['totalValorVendas'], ascending=False)
     print(total_vendas)
     criarPlanilhaExcel(ordenados)
 
@@ -157,7 +162,7 @@ btn_dez_mais.grid(row=4, column=0, padx=(80, 0), pady=10)
 btn_dez_menos = Button(secondFrame, text="Dez mais vendidos por unidade", bg='#C0C0C0', font=("Arial", 16), command=mostraMaisVendidosQtd)
 btn_dez_menos.grid(row=4, column=1, padx=(80, 0), pady=10)
 
-btn_pareto = Button(secondFrame, text="Porcentagem de encomendas por ano", bg='#C0C0C0', font=("Arial", 16), command=calcularPorcentagem)
+btn_pareto = Button(secondFrame, text="Porcentagem de encomendas por ano", bg='#C0C0C0', font=("Arial", 16), command=gerarListaCompleta)
 btn_pareto.grid(row=4, column=2, padx=(80, 0), pady=10)
 
 root.mainloop()  
