@@ -68,10 +68,8 @@ def calcularPorcentagem(row, total):
     return round(porcentagem,2)
 
     
-#Identifica os produtos que são responsáveis por 80% da arrecadação do buffet,
-#baseando-se no princípio de pareto, que diz que 80% dos resultados vem de 20%
-#das ações. No caso deste projeto, mais ou menos 20% dos produtos seriam responsáveis
-#por 80% dos lucros.
+#Gera uma planilha excel listando todos os produtos vendidos no
+#período definido, informando o valor total das vendas.
 def gerarListaCompleta():
     dataInicio = dtInicio.get()
     dtInicioFormatada = formatarData(dataInicio)
@@ -80,11 +78,11 @@ def gerarListaCompleta():
     
     vendas = conn.buscarProdutos(dtInicioFormatada, dtFimFormatada)
     total_vendas = vendas['totalValorVendas'].sum()
+    vendas['acumuloVendas'] = vendas['totalValorVendas'].cumsum()
  
-    vendas['porcentagem'] = vendas.apply(calcularPorcentagem, total=total_vendas, axis=1)
     ordenados = vendas.sort_values(by=['totalValorVendas'], ascending=False)
-    print(total_vendas)
     criarPlanilhaExcel(ordenados)
+
 
 def separarOitentaPct(row, oitenta_pct):
     soma = 0
@@ -96,6 +94,11 @@ def separarOitentaPct(row, oitenta_pct):
         indices.append(row['idProduto'])
     return indices
 
+
+#Identifica os produtos que são responsáveis por 80% da arrecadação do buffet,
+#baseando-se no princípio de pareto, que diz que 80% dos resultados vem de 20%
+#das ações. No caso deste projeto, aproximadamente 21% dos produtos são responsáveis
+#por aproximadamente 80% dos lucros.
 def calcularPareto():
     vendas = conn.buscarProdutos('20230101', '20240101')
     vendas = vendas.sort_values(by=['totalValorVendas'], ascending=False)
