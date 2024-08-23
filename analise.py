@@ -18,7 +18,6 @@ de devoluções que a Araújo faz. A função inserirTotalCompras junta os resul
 vendas e das devoluções de cada loja
 """
 
-
 #Mostra os 10 produtos mais vendidos por quantidade.
 def mostraMaisVendidosQtd():
     dataInicio = dtInicio.get()
@@ -50,6 +49,7 @@ def mostrarDezMaisVendidos():
     dtFimFormatada = formatarData(dataFim)
 
     vendas = conn.buscarProdutos(dtInicioFormatada, dtFimFormatada)
+    print(vendas)
     if len(vendas) == 0:
         messagebox.showinfo("", "Sem encomendas registradas nesse período.")
     else:
@@ -66,6 +66,7 @@ def mostrarDezMaisVendidos():
 def calcularPorcentagem(row, total):
     porcentagem = (row['totalValorVendas'] * 100) / total
     return round(porcentagem,2)
+
     
 #Identifica os produtos que são responsáveis por 80% da arrecadação do buffet,
 #baseando-se no princípio de pareto, que diz que 80% dos resultados vem de 20%
@@ -85,6 +86,41 @@ def gerarListaCompleta():
     print(total_vendas)
     criarPlanilhaExcel(ordenados)
 
+def separarOitentaPct(row, oitenta_pct):
+    soma = 0
+    indices = []
+    for valor in row:
+        soma += int(valor['totalValorVendas'])
+        if soma > oitenta_pct:
+            break
+        indices.append(row['idProduto'])
+    return indices
+
+def calcularPareto():
+    vendas = conn.buscarProdutos('20230101', '20240101')
+    vendas = vendas.sort_values(by=['totalValorVendas'], ascending=False)
+    total_vendas = vendas['totalValorVendas'].sum()
+    oitenta = total_vendas * 0.8
+    vendas['porcentagem'] = vendas.apply(calcularPorcentagem, total=total_vendas, axis=1)
+    vendas['acumuloVendas'] = vendas['totalValorVendas'].cumsum()
+    vendas['acumuloPorcentagem'] = vendas['porcentagem'].cumsum()
+    produtos_pareto = vendas.where(vendas['acumuloVendas'] <= oitenta).dropna()
+    
+    vendas.to_excel('todos_produtos.xlsx')
+    produtos_pareto.to_excel('produtos_pareto.xlsx')
+    
+    pct_qtd_pareto = (len(produtos_pareto) * 100) / len(vendas)
+        
+    criarTexto(len(produtos_pareto), len(vendas), pct_qtd_pareto)
+
+def criarTexto(qtd_pareto, qtd_total, qtd_porcentagem):
+    label_total = Label(secondFrame, text=f"Total de produtos: {qtd_total}", font=("Arial", 14))
+    label_total.grid(row=6, column=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
+    label_pareto = Label(secondFrame, text=f"Quantidade de produtos dentro dos 80%: {qtd_pareto}", font=("Arial", 14))
+    label_pareto.grid(row=7, column=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
+    label_calculo = Label(secondFrame, text=f"{qtd_pareto} corresponde a {round(qtd_porcentagem, 2)}% de {qtd_total}", font=("Arial", 14))
+    label_calculo.grid(row=8, column=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
+
 #Função para criar uma planilha Excel com os produtos que estão nos 20% mais vendidos, 
 #ordenando do maior valor ao menor. As colunas incluem o nome do produto, as unidades
 #vendidas, o valor total, e a porcentagem correspondente de cada produto.
@@ -100,7 +136,7 @@ def criarPlanilhaExcel(dataframe):
     file_path = filedialog.asksaveasfilename(defaultextension=".xlsx",
                                                 filetypes=[("Arquivos Excel", "*.xlsx")],
                                                 title="Salvar arquivo Excel",
-                                                initialfile=f"pareto_produtos")
+                                                initialfile=f"lista_completa")
     
     if not file_path:
         print("Operação cancelada pelo usuário.")
@@ -162,8 +198,12 @@ btn_dez_mais.grid(row=4, column=0, padx=(80, 0), pady=10)
 btn_dez_menos = Button(secondFrame, text="Dez mais vendidos por unidade", bg='#C0C0C0', font=("Arial", 16), command=mostraMaisVendidosQtd)
 btn_dez_menos.grid(row=4, column=1, padx=(80, 0), pady=10)
 
-btn_pareto = Button(secondFrame, text="Porcentagem de encomendas por ano", bg='#C0C0C0', font=("Arial", 16), command=gerarListaCompleta)
+btn_pareto = Button(secondFrame, text="Gerar planilha de vendas", bg='#C0C0C0', font=("Arial", 16), command=gerarListaCompleta)
 btn_pareto.grid(row=4, column=2, padx=(80, 0), pady=10)
 
-root.mainloop()  
+btn_pareto = Button(secondFrame, text="Calcular pareto", bg='#C0C0C0', font=("Arial", 16), command=calcularPareto)
+btn_pareto.grid(row=5, column=0, columnspan=2, padx=(150, 0), pady=30, sticky="nsew")
+
+root.mainloop()
+
 
