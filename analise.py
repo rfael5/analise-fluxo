@@ -31,7 +31,6 @@ def mostraMaisVendidosQtd():
     else:
         order_qtd_maior = vendas.sort_values(by=['qtdEvento'], ascending=False)
         dezp_qtd = order_qtd_maior.iloc[0:10]
-        print(dezp_qtd)
     fig = px.histogram(dezp_qtd, x='nomeProduto', y='qtdEvento')
     fig.update_layout(barmode = 'relative')
     fig.write_html('tmp.html', auto_open=True)
@@ -49,7 +48,6 @@ def mostrarDezMaisVendidos():
     dtFimFormatada = formatarData(dataFim)
 
     vendas = conn.buscarProdutos(dtInicioFormatada, dtFimFormatada)
-    print(vendas)
     if len(vendas) == 0:
         messagebox.showinfo("", "Sem encomendas registradas nesse período.")
     else:
@@ -77,11 +75,11 @@ def gerarListaCompleta():
     dtFimFormatada = formatarData(dataFim)
     
     vendas = conn.buscarProdutos(dtInicioFormatada, dtFimFormatada)
-    total_vendas = vendas['totalValorVendas'].sum()
+    #total_vendas = vendas['totalValorVendas'].sum()
+    vendas = vendas.sort_values(by=['totalValorVendas'], ascending=False)
     vendas['acumuloVendas'] = vendas['totalValorVendas'].cumsum()
- 
-    ordenados = vendas.sort_values(by=['totalValorVendas'], ascending=False)
-    criarPlanilhaExcel(ordenados)
+    
+    criarPlanilhaExcel(vendas)
 
 
 def separarOitentaPct(row, oitenta_pct):
@@ -100,7 +98,7 @@ def separarOitentaPct(row, oitenta_pct):
 #das ações. No caso deste projeto, aproximadamente 21% dos produtos são responsáveis
 #por aproximadamente 80% dos lucros.
 def calcularPareto():
-    vendas = conn.buscarProdutos('20230101', '20240101')
+    vendas = conn.buscarProdutos('20230101', '20240801')
     vendas = vendas.sort_values(by=['totalValorVendas'], ascending=False)
     total_vendas = vendas['totalValorVendas'].sum()
     oitenta = total_vendas * 0.8
@@ -118,11 +116,11 @@ def calcularPareto():
 
 def criarTexto(qtd_pareto, qtd_total, qtd_porcentagem):
     label_total = Label(secondFrame, text=f"Total de produtos: {qtd_total}", font=("Arial", 14))
-    label_total.grid(row=6, column=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
+    label_total.grid(row=7, column=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
     label_pareto = Label(secondFrame, text=f"Quantidade de produtos dentro dos 80%: {qtd_pareto}", font=("Arial", 14))
-    label_pareto.grid(row=7, column=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
+    label_pareto.grid(row=8, column=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
     label_calculo = Label(secondFrame, text=f"{qtd_pareto} corresponde a {round(qtd_porcentagem, 2)}% de {qtd_total}", font=("Arial", 14))
-    label_calculo.grid(row=8, column=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
+    label_calculo.grid(row=9, column=0, columnspan=2, padx=(150, 0), pady=10, sticky="nsew")
 
 #Função para criar uma planilha Excel com os produtos que estão nos 20% mais vendidos, 
 #ordenando do maior valor ao menor. As colunas incluem o nome do produto, as unidades
@@ -204,8 +202,9 @@ btn_dez_menos.grid(row=4, column=1, padx=(80, 0), pady=10)
 btn_pareto = Button(secondFrame, text="Gerar planilha de vendas", bg='#C0C0C0', font=("Arial", 16), command=gerarListaCompleta)
 btn_pareto.grid(row=4, column=2, padx=(80, 0), pady=10)
 
-btn_pareto = Button(secondFrame, text="Calcular pareto", bg='#C0C0C0', font=("Arial", 16), command=calcularPareto)
-btn_pareto.grid(row=5, column=0, columnspan=2, padx=(150, 0), pady=30, sticky="nsew")
+
+btn_pareto = Button(secondFrame, text="Calcular pareto (Janeiro de 2023 à Julho de 2024)", bg='#C0C0C0', font=("Arial", 16), command=calcularPareto)
+btn_pareto.grid(row=6, column=0, columnspan=2, padx=(150, 0), pady=30, sticky="nsew")
 
 root.mainloop()
 
